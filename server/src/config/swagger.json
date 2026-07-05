@@ -1,0 +1,501 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Gatekeeper Auth API Documentation",
+    "version": "1.0.0",
+    "description": "Production-ready enterprise-grade authentication, account recovery, session management, and Identity & Access Management (IAM) service."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "message": { "type": "string", "example": "Operation completed successfully" },
+          "data": { "type": "object" }
+        }
+      },
+      "FailureResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string", "example": "Something went wrong" },
+          "error": {
+            "type": "object",
+            "properties": {
+              "statusCode": { "type": "integer", "example": 400 },
+              "details": { "type": "string", "example": "Specific error details" }
+            }
+          },
+          "requestId": { "type": "string", "example": "c2195325-1e35-48fa-8a56-4279069d2f25" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["firstName", "lastName", "email", "password"],
+                "properties": {
+                  "firstName": { "type": "string", "example": "Aditya" },
+                  "lastName": { "type": "string", "example": "Khatri" },
+                  "email": { "type": "string", "example": "aditya.test@auth.local" },
+                  "password": { "type": "string", "example": "Auth@12345" },
+                  "phone": { "type": "string", "example": "9876543210" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } }
+            }
+          },
+          "400": { "description": "Validation failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FailureResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Authenticate user credentials and retrieve session cookies",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "aditya.test@auth.local" },
+                  "password": { "type": "string", "example": "Auth@12345" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful, refresh token set in cookies",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } }
+            }
+          },
+          "401": { "description": "Invalid credentials", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FailureResponse" } } } },
+          "423": { "description": "Account temporarily locked", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FailureResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/refresh-token": {
+      "post": {
+        "summary": "Rotate refresh tokens to obtain a new access token",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": { "description": "Token rotated successfully", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } },
+          "401": { "description": "Invalid or revoked refresh token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FailureResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "Invalidate user session refresh token and clear cookies",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": { "description": "Logout successful", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Retrieve user profile details for current session",
+        "tags": ["Authentication"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Profile data retrieved", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } },
+          "401": { "description": "Unauthorized access", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FailureResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/send-verification": {
+      "post": {
+        "summary": "Send email verification code OTP",
+        "tags": ["Email Verification"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Verification code dispatched successfully", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/verify-email": {
+      "post": {
+        "summary": "Verify email address using the received OTP code",
+        "tags": ["Email Verification"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "otp"],
+                "properties": {
+                  "email": { "type": "string", "example": "aditya.test@auth.local" },
+                  "otp": { "type": "string", "example": "123456" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email verified successfully", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } },
+          "400": { "description": "Invalid code or lock occurred", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FailureResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/resend-otp": {
+      "post": {
+        "summary": "Request a new OTP code",
+        "tags": ["Email Verification"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "purpose"],
+                "properties": {
+                  "email": { "type": "string", "example": "aditya.test@auth.local" },
+                  "purpose": { "type": "string", "enum": ["EMAIL_VERIFICATION", "PASSWORD_RESET", "LOGIN_VERIFICATION"], "example": "EMAIL_VERIFICATION" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OTP resent successfully", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } },
+          "429": { "description": "Rate limit exceeded (wait 60 seconds)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FailureResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "summary": "Initiate password recovery process",
+        "tags": ["Password Recovery"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "example": "aditya.test@auth.local" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Always returns success to prevent user listing leaks", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/verify-reset-otp": {
+      "post": {
+        "summary": "Check password reset code validity",
+        "tags": ["Password Recovery"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "otp"],
+                "properties": {
+                  "email": { "type": "string", "example": "aditya.test@auth.local" },
+                  "otp": { "type": "string", "example": "123456" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OTP code is valid", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "Complete password reset recovery",
+        "tags": ["Password Recovery"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "otp", "newPassword", "confirmPassword"],
+                "properties": {
+                  "email": { "type": "string", "example": "aditya.test@auth.local" },
+                  "otp": { "type": "string", "example": "123456" },
+                  "newPassword": { "type": "string", "example": "NewSecure@Password123" },
+                  "confirmPassword": { "type": "string", "example": "NewSecure@Password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password updated, all active sessions cleared", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "summary": "Update user password for active authenticated session",
+        "tags": ["Password Recovery"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "newPassword", "confirmPassword"],
+                "properties": {
+                  "currentPassword": { "type": "string", "example": "Auth@12345" },
+                  "newPassword": { "type": "string", "example": "NewSecure@Password123" },
+                  "confirmPassword": { "type": "string", "example": "NewSecure@Password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password updated, active sessions revoked", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/profile": {
+      "get": {
+        "summary": "Get user profile details",
+        "tags": ["Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Profile data retrieved", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      },
+      "patch": {
+        "summary": "Update user profile details",
+        "tags": ["Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": { "type": "string", "example": "Aditya" },
+                  "lastName": { "type": "string", "example": "Khatri" },
+                  "phone": { "type": "string", "example": "9876543210" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Profile updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/profile/avatar": {
+      "patch": {
+        "summary": "Update user profile avatar image path",
+        "tags": ["Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["avatarUrl"],
+                "properties": {
+                  "avatarUrl": { "type": "string", "example": "http://cdn.auth.local/aditya.png" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Avatar updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/profile/preferences": {
+      "patch": {
+        "summary": "Update user interface preferences settings",
+        "tags": ["Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["preferences"],
+                "properties": {
+                  "preferences": {
+                    "type": "object",
+                    "example": { "theme": "dark", "notifications": false }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Preferences updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "summary": "Get paginated, searchable, sorted list of users",
+        "tags": ["Admin User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["SUPER_ADMIN", "ADMIN", "MANAGER", "USER"] } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["ACTIVE", "LOCKED", "DISABLED", "PENDING_VERIFICATION"] } },
+          { "name": "sortBy", "in": "query", "schema": { "type": "string", "default": "createdAt" } },
+          { "name": "sortOrder", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" } }
+        ],
+        "responses": {
+          "200": { "description": "Users list retrieved", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/users/{id}": {
+      "get": {
+        "summary": "Get specific user details",
+        "tags": ["Admin User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "User details retrieved", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      },
+      "patch": {
+        "summary": "Update user role, permissions overrides, or activity status",
+        "tags": ["Admin User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": { "type": "string", "enum": ["SUPER_ADMIN", "ADMIN", "MANAGER", "USER"] },
+                  "permissions": { "type": "array", "items": { "type": "string" } },
+                  "isActive": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      },
+      "delete": {
+        "summary": "Soft delete user from database and revoke active sessions",
+        "tags": ["Admin User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "User soft deleted successfully", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/sessions": {
+      "get": {
+        "summary": "List active refresh token sessions",
+        "tags": ["Admin Session Management"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Active sessions retrieved", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      },
+      "delete": {
+        "summary": "Revoke all sessions for a specific user ID",
+        "tags": ["Admin Session Management"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userId"],
+                "properties": {
+                  "userId": { "type": "string", "example": "6a4a0aa8e0e4be77ff05bd98" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "All sessions for the user dropped", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/sessions/{id}": {
+      "delete": {
+        "summary": "Revoke specific active session by token ID",
+        "tags": ["Admin Session Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Specific session dropped successfully", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessResponse" } } } }
+        }
+      }
+    }
+  }
+}

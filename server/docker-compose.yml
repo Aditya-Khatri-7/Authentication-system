@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  auth-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://local-mongodb:27017/mern-auth-system
+      - JWT_SECRET=super_secret_jwt_access_token_key_123456789_change_me
+      - JWT_REFRESH_SECRET=super_secret_jwt_refresh_token_key_987654321_change_me
+      - JWT_ACCESS_EXPIRATION=15m
+      - JWT_REFRESH_EXPIRATION=7d
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USER=projectsbag7@gmail.com
+      - EMAIL_APP_PASSWORD=lvrkhhpukriliryn
+      - EMAIL_FROM=projectsbag7@gmail.com
+      - FRONTEND_URL=http://localhost:5173
+    depends_on:
+      - local-mongodb
+
+  local-mongodb:
+    image: mongo:6.0-jammy
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
+    driver: local
