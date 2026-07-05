@@ -304,7 +304,7 @@ export const DashboardLayout = () => {
         </AnimatePresence>
 
         {/* Workspace Body */}
-        <main className="flex-grow p-6 md:p-10 max-w-5xl w-full mx-auto">
+        <main className="flex-grow p-6 md:p-10 max-w-[1440px] w-full mx-auto">
           {/* User email verification banner alert if unverified */}
           {user && !user.isEmailVerified && (
             <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
