@@ -4,17 +4,17 @@ import otpRepository from '../repositories/otpRepository.js';
 import auditLogRepository from '../repositories/auditLogRepository.js';
 import emailService from './emailService.js';
 import AppError from '../utils/appError.js';
-import { verifyRecaptcha } from '../utils/verifyRecaptcha.js';
+import { verifyTurnstile } from './turnstileService.js';
 
 class RegistrationService {
   /**
    * Orchestrates the complete user registration business flow
    */
   async registerUser(userData, ip, browser) {
-    const { firstName, lastName, email, password, phone, captchaToken } = userData;
+    const { firstName, lastName, email, password, phone, cf_turnstile_response } = userData;
 
     // Verify Cloudflare Turnstile token
-    await verifyRecaptcha(captchaToken);
+    await verifyTurnstile(cf_turnstile_response, ip);
 
     // 1. Check whether email already exists
     const userExists = await userRepository.findByEmail(email);

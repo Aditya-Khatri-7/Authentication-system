@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -6,7 +6,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { KeyRound, ArrowLeft } from 'lucide-react';
-import Captcha from '../components/Captcha';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 const forgotSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email format').trim().toLowerCase(),
@@ -15,8 +15,7 @@ const forgotSchema = z.object({
 export const ForgotPassword = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
-  const [captchaToken, setCaptchaToken] = React.useState('');
-  const recaptchaRef = React.useRef(null);
+  const [turnstileToken, setTurnstileToken] = useState(null);
 
   const {
     register,
@@ -27,8 +26,8 @@ export const ForgotPassword = () => {
   });
 
   const onSubmit = async (data) => {
-    if (!captchaToken) {
-      toast.error('Please complete the security verification.');
+    if (turnstileToken === null) {
+      toast.error('Please complete the security check');
       return;
     }
 
@@ -36,7 +35,7 @@ export const ForgotPassword = () => {
     try {
       const response = await axios.post('/api/auth/forgot-password', {
         email: data.email,
-        captchaToken,
+        cf_turnstile_response: turnstileToken,
       });
 
       toast.success(response.data.message || 'If the email exists, we will send an OTP.');
@@ -44,10 +43,8 @@ export const ForgotPassword = () => {
     } catch (error) {
       const msg = error.response?.data?.message || 'Something went wrong, please try again.';
       toast.error(msg);
-      // Reset CAPTCHA on error
-      recaptchaRef.current?.reset();
-      setCaptchaToken('');
     } finally {
+      setTurnstileToken(null);
       setLoading(false);
     }
   };
@@ -78,15 +75,19 @@ export const ForgotPassword = () => {
         </div>
 
         {/* Captcha checkbox widget */}
-        <Captcha
-          ref={recaptchaRef}
-          onChange={(token) => setCaptchaToken(token || '')}
-          onExpired={() => setCaptchaToken('')}
-        />
+        <div className="flex justify-center w-full py-1 min-h-[65px] overflow-hidden">
+          <Turnstile
+            siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+            onSuccess={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+            onError={() => setTurnstileToken(null)}
+            options={{ theme: 'light' }}
+          />
+        </div>
 
         <button
           type="submit"
-          disabled={loading || !captchaToken}
+          disabled={loading || !turnstileToken}
           className="w-full inline-flex items-center justify-center px-4 py-3.5 border border-transparent text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-750 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 disabled:bg-blue-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Sending code...' : 'Send Reset Code'}

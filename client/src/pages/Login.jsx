@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,7 +8,7 @@ import { setCredentials } from '../redux/authSlice';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import Captcha from '../components/Captcha';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email format').trim().toLowerCase(),
@@ -22,8 +22,7 @@ export const Login = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [serverError, setServerError] = React.useState('');
-  const [captchaToken, setCaptchaToken] = React.useState('');
-  const recaptchaRef = React.useRef(null);
+  const [turnstileToken, setTurnstileToken] = useState(null);
 
   const {
     register,
@@ -37,8 +36,8 @@ export const Login = () => {
   });
 
   const onSubmit = async (data) => {
-    if (!captchaToken) {
-      toast.error('Please complete the security verification.');
+    if (turnstileToken === null) {
+      toast.error('Please complete the security check');
       return;
     }
 
@@ -49,7 +48,7 @@ export const Login = () => {
         email: data.email,
         password: data.password,
         loginType: data.loginType,
-        captchaToken,
+        cf_turnstile_response: turnstileToken,
       });
 
       const { accessToken, user } = response.data.data;
@@ -67,10 +66,8 @@ export const Login = () => {
       const msg = error.response?.data?.message || 'Login failed, please check credentials.';
       setServerError(msg);
       toast.error(msg);
-      // Reset the CAPTCHA widget on error
-      recaptchaRef.current?.reset();
-      setCaptchaToken('');
     } finally {
+      setTurnstileToken(null);
       setLoading(false);
     }
   };
@@ -159,15 +156,19 @@ export const Login = () => {
         </div>
 
         {/* Captcha checkbox widget */}
-        <Captcha
-          ref={recaptchaRef}
-          onChange={(token) => setCaptchaToken(token || '')}
-          onExpired={() => setCaptchaToken('')}
-        />
+        <div className="flex justify-center w-full py-1 min-h-[65px] overflow-hidden">
+          <Turnstile
+            siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+            onSuccess={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+            onError={() => setTurnstileToken(null)}
+            options={{ theme: 'light' }}
+          />
+        </div>
 
         <button
           type="submit"
-          disabled={loading || !captchaToken}
+          disabled={loading || !turnstileToken}
           className="w-full inline-flex items-center justify-center px-4 py-3.5 border border-transparent text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-750 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 disabled:bg-blue-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Signing in...' : 'Sign In'}

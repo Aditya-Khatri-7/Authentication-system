@@ -9,13 +9,13 @@ class AuthController {
    */
   async register(req, res, next) {
     try {
-      const { firstName, lastName, email, password, phone, captchaToken } = req.body;
+      const { firstName, lastName, email, password, phone, cf_turnstile_response } = req.body;
 
       const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
       const browser = req.headers['user-agent'] || 'unknown';
 
       const result = await registrationService.registerUser(
-        { firstName, lastName, email, password, phone, captchaToken },
+        { firstName, lastName, email, password, phone, cf_turnstile_response },
         ip,
         browser
       );
@@ -31,11 +31,11 @@ class AuthController {
    */
   async login(req, res, next) {
     try {
-      const { email, password, loginType, captchaToken } = req.body;
+      const { email, password, loginType, cf_turnstile_response } = req.body;
       const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
       const browser = req.headers['user-agent'] || 'unknown';
 
-      const result = await loginService.loginUser(email, password, captchaToken, ip, browser, loginType);
+      const result = await loginService.loginUser(email, password, cf_turnstile_response, ip, browser, loginType);
 
       // Set HTTP Only Cookie for Refresh Token
       res.cookie('refreshToken', result.refreshToken, {
@@ -133,11 +133,11 @@ class AuthController {
    */
   async forgotPassword(req, res, next) {
     try {
-      const { email, captchaToken } = req.body;
+      const { email, cf_turnstile_response } = req.body;
       const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
       const browser = req.headers['user-agent'] || 'unknown';
 
-      const result = await accountRecoveryService.forgotPassword(email, captchaToken, ip, browser);
+      const result = await accountRecoveryService.forgotPassword(email, cf_turnstile_response, ip, browser);
       return res.success(result.message, result.data || {});
     } catch (error) {
       next(error);

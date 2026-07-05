@@ -1,14 +1,17 @@
 import axios from 'axios';
-import AppError from './appError.js';
+import AppError from '../utils/appError.js';
 
 /**
- * Verifies the Cloudflare Turnstile CAPTCHA token with Cloudflare's validation endpoint.
- * Accepts a development mode bypass for local testing if needed.
+ * Verifies a Cloudflare Turnstile CAPTCHA response token.
+ * Supports a development mode bypass for local testing.
+ * 
+ * @param {string} token - The cf_turnstile_response token from client
+ * @param {string} userIP - The client's IP address
  */
-export const verifyRecaptcha = async (token) => {
+export const verifyTurnstile = async (token, userIP = '') => {
   // If in development mode and token is bypassed, pass verification
   if (process.env.NODE_ENV === 'development' && 
-      (token === 'mock-turnstile-token' || token === 'mock-turnstile-token-bypass-adblockers')) {
+      (token === 'mock-turnstile-token' || token === 'mock-turnstile-token-bypass-adblockers' || !token)) {
     console.log('[Gatekeeper] Development Mode: Bypassing Turnstile captcha verification.');
     return true;
   }
@@ -24,7 +27,7 @@ export const verifyRecaptcha = async (token) => {
     if (process.env.NODE_ENV === 'development') {
       return true;
     }
-    throw new AppError('CAPTCHA service is unconfigured.', 500);
+    throw new AppError('CAPTCHA service is currently unconfigured.', 500);
   }
 
   try {
@@ -33,6 +36,7 @@ export const verifyRecaptcha = async (token) => {
       new URLSearchParams({
         secret: secretKey,
         response: token,
+        remoteip: userIP,
       }),
       {
         headers: {
@@ -65,4 +69,6 @@ export const verifyRecaptcha = async (token) => {
   }
 };
 
-export default verifyRecaptcha;
+export default {
+  verifyTurnstile
+};

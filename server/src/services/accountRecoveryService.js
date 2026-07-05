@@ -5,15 +5,15 @@ import emailService from './emailService.js';
 import auditLogRepository from '../repositories/auditLogRepository.js';
 import refreshTokenRepository from '../repositories/refreshTokenRepository.js';
 import AppError from '../utils/appError.js';
-import { verifyRecaptcha } from '../utils/verifyRecaptcha.js';
+import { verifyTurnstile } from './turnstileService.js';
 
 class AccountRecoveryService {
   /**
    * Generates a reset code and sends it via email. Always returns generic response.
    */
-  async forgotPassword(email, captchaToken, ip, browser) {
+  async forgotPassword(email, cf_turnstile_response, ip, browser) {
     // Verify Cloudflare Turnstile token
-    await verifyRecaptcha(captchaToken);
+    await verifyTurnstile(cf_turnstile_response, ip);
 
     const cleanEmail = email.toLowerCase().trim();
 
