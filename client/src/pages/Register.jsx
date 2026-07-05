@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import Captcha from '../components/Captcha';
 
 const registerSchema = z.object({
   firstName: z.string().min(1, 'First name is required').trim(),
@@ -31,6 +32,8 @@ export const Register = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [captchaToken, setCaptchaToken] = React.useState('');
+  const recaptchaRef = React.useRef(null);
 
   const {
     register,
@@ -70,6 +73,11 @@ export const Register = () => {
   };
 
   const onSubmit = async (data) => {
+    if (!captchaToken) {
+      toast.error('Please complete the safety verification.');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await axios.post('/api/auth/register', {
@@ -78,6 +86,7 @@ export const Register = () => {
         email: data.email,
         password: data.password,
         phone: data.phone || '',
+        captchaToken,
       });
 
       toast.success(response.data.message || 'Registration successful!');
@@ -85,6 +94,9 @@ export const Register = () => {
     } catch (error) {
       const msg = error.response?.data?.message || 'Registration failed, please try again.';
       toast.error(msg);
+      // Reset CAPTCHA on error
+      recaptchaRef.current?.reset();
+      setCaptchaToken('');
     } finally {
       setLoading(false);
     }
@@ -173,23 +185,23 @@ export const Register = () => {
           </div>
           {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>}
 
-          {/* Strength Meter Grid */}
+          {/* Password Strength Indicator */}
           {passwordVal && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs font-medium">
-                <span className="text-slate-500">Security strength:</span>
-                <span className={`font-semibold ${
-                  passwordStrength <= 2 ? 'text-red-600' : passwordStrength <= 4 ? 'text-amber-600' : 'text-emerald-600'
+            <div className="mt-2.5 bg-slate-50 border border-slate-100 p-3 rounded-xl">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Password Strength</span>
+                <span className={`text-xs font-bold ${
+                  passwordStrength <= 2 ? 'text-red-500' : passwordStrength <= 4 ? 'text-amber-500' : 'text-emerald-500'
                 }`}>
                   {strengthLabel(passwordStrength)}
                 </span>
               </div>
-              <div className="mt-1.5 flex h-1.5 w-full gap-1 overflow-hidden rounded-full bg-slate-100">
-                {[1, 2, 3, 4, 5].map((level) => (
+              <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden flex gap-1">
+                {[1, 2, 3, 4, 5].map((idx) => (
                   <div
-                    key={level}
+                    key={idx}
                     className={`h-full flex-grow rounded-full transition-all duration-300 ${
-                      level <= passwordStrength ? strengthColor(passwordStrength) : 'bg-transparent'
+                      idx <= passwordStrength ? strengthColor(passwordStrength) : 'bg-slate-200'
                     }`}
                   />
                 ))}
@@ -210,9 +222,16 @@ export const Register = () => {
           {errors.confirmPassword && <p className="mt-1 text-xs text-red-500">{errors.confirmPassword.message}</p>}
         </div>
 
+        {/* Captcha checkbox widget */}
+        <Captcha
+          ref={recaptchaRef}
+          onChange={(token) => setCaptchaToken(token || '')}
+          onExpired={() => setCaptchaToken('')}
+        />
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !captchaToken}
           className="mt-4 w-full inline-flex items-center justify-center px-4 py-3.5 border border-transparent text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-750 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 disabled:bg-blue-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Creating account...' : 'Create Account'}

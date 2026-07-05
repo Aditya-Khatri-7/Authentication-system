@@ -3,13 +3,17 @@ import userRepository from '../repositories/userRepository.js';
 import auditLogRepository from '../repositories/auditLogRepository.js';
 import tokenService from './tokenService.js';
 import AppError from '../utils/appError.js';
+import { verifyRecaptcha } from '../utils/verifyRecaptcha.js';
 
 class LoginService {
   /**
    * Main login flow executing account lock checks, credentials verification,
    * failed attempts increments, and session token generation.
    */
-  async loginUser(email, password, ip, browser, loginType = 'USER') {
+  async loginUser(email, password, captchaToken, ip, browser, loginType = 'USER') {
+    // Verify Cloudflare Turnstile token
+    await verifyRecaptcha(captchaToken);
+
     const cleanEmail = email ? email.toLowerCase().trim() : '';
 
     // 1. Find user by email

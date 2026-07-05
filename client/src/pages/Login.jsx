@@ -8,6 +8,7 @@ import { setCredentials } from '../redux/authSlice';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import Captcha from '../components/Captcha';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email format').trim().toLowerCase(),
@@ -21,6 +22,8 @@ export const Login = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [serverError, setServerError] = React.useState('');
+  const [captchaToken, setCaptchaToken] = React.useState('');
+  const recaptchaRef = React.useRef(null);
 
   const {
     register,
@@ -34,6 +37,11 @@ export const Login = () => {
   });
 
   const onSubmit = async (data) => {
+    if (!captchaToken) {
+      toast.error('Please complete the security verification.');
+      return;
+    }
+
     setLoading(true);
     setServerError('');
     try {
@@ -41,6 +49,7 @@ export const Login = () => {
         email: data.email,
         password: data.password,
         loginType: data.loginType,
+        captchaToken,
       });
 
       const { accessToken, user } = response.data.data;
@@ -58,6 +67,9 @@ export const Login = () => {
       const msg = error.response?.data?.message || 'Login failed, please check credentials.';
       setServerError(msg);
       toast.error(msg);
+      // Reset the CAPTCHA widget on error
+      recaptchaRef.current?.reset();
+      setCaptchaToken('');
     } finally {
       setLoading(false);
     }
@@ -146,9 +158,16 @@ export const Login = () => {
           </div>
         </div>
 
+        {/* Captcha checkbox widget */}
+        <Captcha
+          ref={recaptchaRef}
+          onChange={(token) => setCaptchaToken(token || '')}
+          onExpired={() => setCaptchaToken('')}
+        />
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !captchaToken}
           className="w-full inline-flex items-center justify-center px-4 py-3.5 border border-transparent text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-750 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 disabled:bg-blue-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Signing in...' : 'Sign In'}

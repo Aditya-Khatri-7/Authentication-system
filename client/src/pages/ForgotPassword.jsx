@@ -6,6 +6,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { KeyRound, ArrowLeft } from 'lucide-react';
+import Captcha from '../components/Captcha';
 
 const forgotSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email format').trim().toLowerCase(),
@@ -14,6 +15,8 @@ const forgotSchema = z.object({
 export const ForgotPassword = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
+  const [captchaToken, setCaptchaToken] = React.useState('');
+  const recaptchaRef = React.useRef(null);
 
   const {
     register,
@@ -24,10 +27,16 @@ export const ForgotPassword = () => {
   });
 
   const onSubmit = async (data) => {
+    if (!captchaToken) {
+      toast.error('Please complete the security verification.');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await axios.post('/api/auth/forgot-password', {
         email: data.email,
+        captchaToken,
       });
 
       toast.success(response.data.message || 'If the email exists, we will send an OTP.');
@@ -35,6 +44,9 @@ export const ForgotPassword = () => {
     } catch (error) {
       const msg = error.response?.data?.message || 'Something went wrong, please try again.';
       toast.error(msg);
+      // Reset CAPTCHA on error
+      recaptchaRef.current?.reset();
+      setCaptchaToken('');
     } finally {
       setLoading(false);
     }
@@ -65,9 +77,16 @@ export const ForgotPassword = () => {
           {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
         </div>
 
+        {/* Captcha checkbox widget */}
+        <Captcha
+          ref={recaptchaRef}
+          onChange={(token) => setCaptchaToken(token || '')}
+          onExpired={() => setCaptchaToken('')}
+        />
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !captchaToken}
           className="w-full inline-flex items-center justify-center px-4 py-3.5 border border-transparent text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-750 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 disabled:bg-blue-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Sending code...' : 'Send Reset Code'}
