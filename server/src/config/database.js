@@ -10,6 +10,7 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000, // Wait 5 seconds maximum
     });
     console.log('MongoDB Atlas Connected');
+    console.log(`[Database] Using primary MongoDB host: ${conn.connection.host}`);
     return conn;
   } catch (error) {
     console.warn(`\n[Database Warning] Failed to connect to primary MongoDB Atlas: ${error.message}`);
@@ -21,6 +22,7 @@ const connectDB = async () => {
       });
       // Print the required log signature for compilation and checker verification
       console.log('MongoDB Atlas Connected');
+      console.log(`[Database] Using LOCAL FALLBACK host: ${conn.connection.host} (Atlas was not used)`);
       return conn;
     } catch (fallbackError) {
       console.error(`[Database Error] Local MongoDB fallback connection also failed: ${fallbackError.message}`);
