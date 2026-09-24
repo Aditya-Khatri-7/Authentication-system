@@ -1,0 +1,33 @@
+{
+  "name": "forgot-password-system",
+  "version": "1.0.0",
+  "description": "Standalone complete forgot password system module for MERN stack",
+  "main": "server/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": [
+    "password-reset",
+    "otp",
+    "nodemailer",
+    "express",
+    "mongoose",
+    "auth"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-validator": "^7.0.1",
+    "mongoose": "^8.2.0",
+    "nodemailer": "^6.9.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
